@@ -5,7 +5,7 @@ use std::{thread, time};
 use std::net::{TcpStream, TcpListener};
 use tailcall::tailcall;
 
-use crate::models::ffb_data::{ComputeData, GetByteSteam, MozaFFBData};
+use crate::models::ffb_data::{ComputeData, FrameTelemetryString, MozaFFBData};
 
 mod models;
 
@@ -78,7 +78,7 @@ fn main_loop(stream: &mut TcpStream, flight_data_file: MemoryFile<'static, Fligh
             }
 
             moza_data.compute_ffb_data(flight_data_file, intellivibe_data_file);
-            socket_send(stream, moza_data.as_bytes());
+            socket_send(stream, moza_data.telemetry_string());
         }
     }
 }

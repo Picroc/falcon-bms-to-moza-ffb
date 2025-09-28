@@ -1,4 +1,4 @@
-use bms_sm::{FlightData, IntellivibeData, MemoryFile};
+use bms_sm::{FlightData, IntellivibeData};
 
 const AIRCRAFT_NAME: &str = "F-16C_50";
 
@@ -6,8 +6,8 @@ pub trait ComputeData {
     fn compute_ffb_data(&mut self, flight_data_file: &FlightData, intellivibe_data_file: &IntellivibeData);
 }
 
-pub trait GetByteSteam {
-    fn as_bytes(&self) -> String;
+pub trait FrameTelemetryString {
+    fn telemetry_string(&self) -> String;
 }
 
 #[derive(Default)]
@@ -64,6 +64,8 @@ pub struct MozaFFBData {
 
 impl ComputeData for MozaFFBData {
     fn compute_ffb_data(&mut self, flight_data_file: &FlightData, intellivibe_data_file: &IntellivibeData) {
+        let aircraft_name = AIRCRAFT_NAME.to_string();
+
         let engine_rpm_left = flight_data_file.rpm;
         let engine_rpm_right = 0.0;
 
@@ -142,6 +144,7 @@ impl ComputeData for MozaFFBData {
         let light_gear_warning = 0.0;
         let light_gear_indicator = 0.0;
 
+        self.aircraft_name = aircraft_name;
         self.engine_rpm_left = engine_rpm_left;
         self.engine_rpm_right = engine_rpm_right;
         self.left_gear = left_gear;
@@ -186,11 +189,11 @@ impl ComputeData for MozaFFBData {
     }
 }
 
-impl GetByteSteam for MozaFFBData {
-    fn as_bytes(&self) -> String {
+impl FrameTelemetryString for MozaFFBData {
+    fn telemetry_string(&self) -> String {
         let result = format!(
             "aircraft_name,{};engine_rpm_left,{};engine_rpm_right,{};left_gear,{};nose_gear,{};right_gear,{};acc_x,{};acc_y,{};acc_z,{};wind_x,{};wind_y,{};wind_z,{};vector_velocity_x,{};vector_velocity_y,{};vector_velocity_z,{};tas,{};ias,{};vertical_velocity_speed,{};aoa,{};heading,{};pitch,{};bank,{};aos,{};euler_vx,{};euler_vy,{};euler_vz,{};helicopter_rotor_rpm,0;canopy_pos,{};flap_pos,{};gear_value,{};speedbrake_value,{};afterburner_1,{};afterburner_2,{};weapon,{};flare,{};chaff,{};cannon_shells,{};mach,{};h_above_sea_level,{};led_console,{};led_instruments_result,{};light_apu_ready,{};light_gear_warning,{};light_gear_indicator,{};",
-            AIRCRAFT_NAME,
+            self.aircraft_name,
             self.engine_rpm_left,
             self.engine_rpm_right,
             self.left_gear,
