@@ -1,9 +1,15 @@
 use bms_sm::{FlightData, IntellivibeData};
+use std::cmp::min;
 
 const AIRCRAFT_NAME: &str = "F-16C_50";
+const ON_GROUND_GEAR: f32 = 0.01011961698532;
 
 pub trait ComputeData {
-    fn compute_ffb_data(&mut self, flight_data_file: &FlightData, intellivibe_data_file: &IntellivibeData);
+    fn compute_ffb_data(
+        &mut self,
+        flight_data_file: &FlightData,
+        intellivibe_data_file: &IntellivibeData,
+    );
 }
 
 pub trait FrameTelemetryString {
@@ -43,7 +49,7 @@ pub struct MozaFFBData {
     gear_value: f32,
     speedbrake_value: f32,
     afterburner_1: f32,
-    afterburner_2: f32,
+    afterburner_2: f32, // Moza expects this to be 1 for F-16
     weapon: String,
     flare: f32,
     chaff: f32,
@@ -63,7 +69,11 @@ pub struct MozaFFBData {
 }
 
 impl ComputeData for MozaFFBData {
-    fn compute_ffb_data(&mut self, flight_data_file: &FlightData, intellivibe_data_file: &IntellivibeData) {
+    fn compute_ffb_data(
+        &mut self,
+        flight_data_file: &FlightData,
+        intellivibe_data_file: &IntellivibeData,
+    ) {
         let aircraft_name = AIRCRAFT_NAME.to_string();
 
         let engine_rpm_left = flight_data_file.rpm;
@@ -101,21 +111,32 @@ impl ComputeData for MozaFFBData {
 
         let canopy_pos = 0.0;
         let flap_pos = 0.0;
-        
-        let gear_value = flight_data_file.gear_pos;
+
+        let gear_value = if intellivibe_data_file.on_ground && flight_data_file.gear_pos > 0.0 {
+            flight_data_file.gear_pos - ON_GROUND_GEAR
+        } else {
+            flight_data_file.gear_pos
+        };
         let speedbrake_value = flight_data_file.speed_brake;
 
-        let afterburner_1 = if flight_data_file.rpm > 100.0 {
-            (flight_data_file.rpm - 100.0) * 10.0
-        } else { 0.0 };
-        let afterburner_2 = 0.0;
+        let afterburner_2 = if flight_data_file.rpm > 95.7 {
+            let result = (97.0 - flight_data_file.rpm) / 1.5;
+            if result > 1.0 {
+                1.0
+            } else {
+                result
+            }
+        } else {
+            0.0
+        };
+        let afterburner_1 = 0.0;
 
         let aa_weapon = "AIM-120C-4.4.7.106*1";
         let ag_weapon = "Mk-82-4.5.9.31*1";
         let default_weapon = "f-16c_hts_pod-4.15.44.808*1";
 
         let mut weapons = vec![default_weapon];
-        
+
         if self.last_aa_missile_count < intellivibe_data_file.aa_missile_fired {
             self.last_aa_missile_count = intellivibe_data_file.aa_missile_fired;
         } else {
@@ -137,7 +158,6 @@ impl ComputeData for MozaFFBData {
         let mach = flight_data_file.mach;
 
         let altitude_sea_level = 245.0;
-
 
         let led_instruments_result = 0.0;
         let light_apu_ready = 0.0;
@@ -240,4 +260,8 @@ impl FrameTelemetryString for MozaFFBData {
 
         result
     }
+}
+
+impl MozaFFBData {
+    pub fn debug_log(&self) {}
 }
