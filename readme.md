@@ -12,6 +12,8 @@ Download from the [latest release](https://github.com/Picroc/falcon-bms-to-moza-
 
 Then just start the app together with Moza Cockpit and BMS. You can select any profile, DCS Viper works okay.
 
+For F-15C, I found liking F-18C profile. Unfortunately there's no profile from Moza for F-15C/E at the moment.
+
 ## What's supported
 
 Being a FBW aircraft, it's hard to judge if some telemetry values are ignored, incorrect or work as designed, so it's
@@ -19,6 +21,7 @@ approximated with the F-16 feel in DCS. Feel free to raise PRs with values tunin
 
 - Afterburner rattle
 - Gear movement
+- Gunfire effect
 - Bombs deployment effect
 - Chaff/Flare deployment effect
 - Speedbrake movement

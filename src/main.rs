@@ -2,10 +2,10 @@ use bms_sm::*;
 use std::io::Write;
 use std::net::{TcpListener, TcpStream};
 use std::time::Duration;
-use std::{thread, time};
+use std::{env, thread, time};
 use tailcall::tailcall;
 
-use crate::models::ffb_data::{ComputeData, FrameTelemetryString, MozaFFBData};
+use crate::models::ffb_data::{ComputeData, FrameTelemetryString, MozaFFBData, SelectedAircraft};
 
 mod models;
 
@@ -13,6 +13,25 @@ const TICK_SLEEP_TIME: Duration = time::Duration::from_millis(10);
 const WAITING_SIM_AND_TELEMETRY_SLEEP_TIME: Duration = time::Duration::from_millis(300);
 
 fn main() {
+    let args: Vec<String> = env::args().collect();
+
+    // NOTE: not currently used, apparently Moza Cockpit doesn't care for the name of the aircraft
+    // let mode = &args[1];
+    // println!("mode: {}", mode);
+    // let mode = if mode.is_empty() {
+    //     println!("No mode specified, selecting Viper profile");
+    //     SelectedAircraft::Viper
+    // } else {
+    //     match mode.as_ref() {
+    //         "viper" => SelectedAircraft::Viper,
+    //         "eagle" => SelectedAircraft::Eagle,
+    //         _ => {
+    //             println!("Invalid mode specified, selecting Viper profile");
+    //             SelectedAircraft::Viper
+    //         }
+    //     }
+    // };
+
     let socket_port = 1234;
     let socket_host = "127.0.0.1";
     let socket: TcpListener =
@@ -27,7 +46,12 @@ fn main() {
     println!("Starting main loop");
     if let Ok((mut stream, addr)) = client {
         println!("new client: {addr:?}");
-        main_loop(&mut stream, flight_data, intellivibe_data);
+        main_loop(
+            &mut stream,
+            flight_data,
+            intellivibe_data,
+            SelectedAircraft::Viper,
+        );
     } else {
         println!("Socket accept failure");
     }
@@ -68,8 +92,9 @@ fn main_loop(
     stream: &mut TcpStream,
     flight_data_file: MemoryFile<'static, FlightData>,
     intellivibe_data_file: MemoryFile<'static, IntellivibeData>,
+    selected_aircraft: SelectedAircraft,
 ) {
-    let mut moza_data = MozaFFBData::default();
+    let mut moza_data = MozaFFBData::new(selected_aircraft);
     loop {
         thread::sleep(TICK_SLEEP_TIME);
 

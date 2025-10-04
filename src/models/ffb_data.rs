@@ -1,7 +1,7 @@
 use bms_sm::{FlightData, IntellivibeData};
-use std::cmp::min;
 
 const AIRCRAFT_NAME: &str = "F-16C_50";
+const EAGLE_AIRCRAFT_NAME: &str = "F-15C";
 const ON_GROUND_GEAR: f32 = 0.01011961698532;
 
 pub trait ComputeData {
@@ -14,6 +14,20 @@ pub trait ComputeData {
 
 pub trait FrameTelemetryString {
     fn telemetry_string(&self) -> String;
+}
+
+pub enum SelectedAircraft {
+    Viper,
+    Eagle,
+}
+
+impl From<SelectedAircraft> for String {
+    fn from(selected: SelectedAircraft) -> String {
+        match selected {
+            SelectedAircraft::Viper => AIRCRAFT_NAME.to_string(),
+            SelectedAircraft::Eagle => EAGLE_AIRCRAFT_NAME.to_string(),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -49,7 +63,7 @@ pub struct MozaFFBData {
     gear_value: f32,
     speedbrake_value: f32,
     afterburner_1: f32,
-    afterburner_2: f32, // Moza expects this to be 1 for F-16
+    afterburner_2: f32,
     weapon: String,
     flare: f32,
     chaff: f32,
@@ -74,8 +88,6 @@ impl ComputeData for MozaFFBData {
         flight_data_file: &FlightData,
         intellivibe_data_file: &IntellivibeData,
     ) {
-        let aircraft_name = AIRCRAFT_NAME.to_string();
-
         let engine_rpm_left = flight_data_file.rpm;
         let engine_rpm_right = 0.0;
 
@@ -129,7 +141,7 @@ impl ComputeData for MozaFFBData {
         } else {
             0.0
         };
-        let afterburner_1 = 0.0;
+        let afterburner_1 = self.afterburner_2;
 
         let aa_weapon = "AIM-120C-4.4.7.106*1";
         let ag_weapon = "Mk-82-4.5.9.31*1";
@@ -153,7 +165,10 @@ impl ComputeData for MozaFFBData {
         let flare = flight_data_file.flare_count;
         let chaff = flight_data_file.chaff_count;
 
-        let cannon_shells: u32 = 520 - intellivibe_data_file.bullets_fired as u32;
+        // let cannon_shells: u32 = 520 - intellivibe_data_file.bullets_fired as u32;
+        if intellivibe_data_file.firing_gun {
+            self.cannon_shells -= 1;
+        }
 
         let mach = flight_data_file.mach;
 
@@ -164,7 +179,6 @@ impl ComputeData for MozaFFBData {
         let light_gear_warning = 0.0;
         let light_gear_indicator = 0.0;
 
-        self.aircraft_name = aircraft_name;
         self.engine_rpm_left = engine_rpm_left;
         self.engine_rpm_right = engine_rpm_right;
         self.left_gear = left_gear;
@@ -199,7 +213,6 @@ impl ComputeData for MozaFFBData {
         self.weapon = weapon;
         self.flare = flare;
         self.chaff = chaff;
-        self.cannon_shells = cannon_shells;
         self.mach = mach;
         self.altitude_sea_level = altitude_sea_level;
         self.led_instruments_result = led_instruments_result;
@@ -263,5 +276,13 @@ impl FrameTelemetryString for MozaFFBData {
 }
 
 impl MozaFFBData {
+    pub fn new(selected_aircraft: SelectedAircraft) -> Self {
+        Self {
+            aircraft_name: selected_aircraft.into(),
+            cannon_shells: 9999,
+            ..Self::default()
+        }
+    }
+
     pub fn debug_log(&self) {}
 }
